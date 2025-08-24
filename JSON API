@@ -1,0 +1,8 @@
+async function fetchIndexData(symbol) {
+  const apiUrl = `https://www.nseindia.com/api/equity-stockIndices?index=${encodeURIComponent(symbol)}`;
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+
+  const res = await fetch(proxyUrl);
+  const data = await res.json();
+  return JSON.parse(data.contents);
+}
