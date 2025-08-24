@@ -1,0 +1,5 @@
+async function fetchYahoo(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=10y`;
+  const res = await fetch(url);
+  return await res.json();
+}
