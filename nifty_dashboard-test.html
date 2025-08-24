@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nifty Indices 10-Year Performance Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #1e3c72;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .filter-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        .stats-summary {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            min-width: 150px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .last-updated {
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            min-width: 1200px;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+
+        th {
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s ease;
+        }
+
+        th:hover {
+            background: linear-gradient(45deg, #2a5298, #1e3c72);
+            transform: translateY(-2px);
+        }
+
+        .sort-indicator {
+            margin-left: 5px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .index-name {
+            text-align: left;
+            font-weight: 600;
+            color: #1e3c72;
+            min-width: 200px;
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 5;
+            border-right: 2px solid #e0e0e0;
+        }
+
+        .index-name th {
+            position: sticky;
+            left: 0;
+            z-index: 15;
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            border-right: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .category-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .avg-return {
+            font-weight: bold;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .year-2025 {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            font-weight: bold;
+        }
+
+        .performance-excellent {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+            font-weight: bold;
+        }
+
+        .performance-good {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            font-weight: bold;
+        }
+
+        .performance-average {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            font-weight: bold;
+        }
+
+        .performance-poor {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+            font-weight: bold;
+        }
+
+        .valuation-expensive {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            font-weight: bold;
+        }
+
+        .valuation-fair {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            font-weight: bold;
+        }
+
+        .valuation-cheap {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            color: white;
+            font-weight: bold;
+        }
+
+        .valuation-neutral {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+            font-weight: bold;
+        }
+
+        .dividend-high {
+            background: linear-gradient(135deg, #8e44ad, #7d3c98);
+            color: white;
+            font-weight: bold;
+        }
+
+        .dividend-medium {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            font-weight: bold;
+        }
+
+        .dividend-low {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .error {
+            text-align: center;
+            padding: 30px;
+            color: #f44336;
+            background: #ffebee;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            th, td {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+
+            .index-name {
+                min-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Nifty Indices 10-Year Performance Dashboard</h1>
+            <p>Historical returns analysis with ranking and color coding (2015-2025 YTD)</p>
+        </div>
+
+        <div class="controls">
+            <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
+        </div>
+
+        <div class="filter-controls">
+            <button class="filter-btn active" onclick="filterIndices('all')">All Indices</button>
+            <button class="filter-btn" onclick="filterIndices('broad')">Broad Market</button>
+            <button class="filter-btn" onclick="filterIndices('sectoral')">Sectoral</button>
+            <button class="filter-btn" onclick="filterIndices('thematic')">Thematic</button>
+            <button class="filter-btn" onclick="filterIndices('sharia')">Sharia</button>
+            <button class="filter-btn" onclick="filterIndices('strategy')">Strategy</button>
+        </div>
+
+        <div class="stats-summary">
+            <div class="stat-card">
+                <div class="stat-value" id="totalIndices">0</div>
+                <div class="stat-label">Total Indices</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgPE">0</div>
+                <div class="stat-label">Avg P/E Ratio</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgReturn2025">0%</div>
+                <div class="stat-label">Avg 2025 YTD</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="bestPerformer">-</div>
+                <div class="stat-label">Best 2025 YTD</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="worstPerformer">-</div>
+                <div class="stat-label">Worst 2025 YTD</div>
+            </div>
+        </div>
+
+        <div class="last-updated" id="lastUpdated">
+            Last updated: Never
+        </div>
+
+        <div class="table-container">
+            <div id="loading" class="loading">
+                🔄 Loading 10-year historical data for Nifty indices...
+            </div>
+            
+            <div id="error" class="error" style="display: none;">
+                ❌ Error loading data. Please try refreshing.
+            </div>
+
+            <table id="performanceTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th class="index-name" onclick="sortTable('name')">Index Name <span class="sort-indicator" id="sort-name"></span></th>
+                        <th onclick="sortTable('pe_ratio')">P/E <span class="sort-indicator" id="sort-pe_ratio"></span></th>
+                        <th onclick="sortTable('pb_ratio')">P/B <span class="sort-indicator" id="sort-pb_ratio"></span></th>
+                        <th onclick="sortTable('dividend_yield')">Div Yield <span class="sort-indicator" id="sort-dividend_yield"></span></th>
+                        <th class="avg-return" onclick="sortTable('average')">10Y Avg <span class="sort-indicator" id="sort-average"></span></th>
+                        <th onclick="sortTable('2025')">2025 YTD <span class="sort-indicator" id="sort-2025">▼</span></th>
+                        <th onclick="sortTable('2024')">2024 <span class="sort-indicator" id="sort-2024"></span></th>
+                        <th onclick="sortTable('2023')">2023 <span class="sort-indicator" id="sort-2023"></span></th>
+                        <th onclick="sortTable('2022')">2022 <span class="sort-indicator" id="sort-2022"></span></th>
+                        <th onclick="sortTable('2021')">2021 <span class="sort-indicator" id="sort-2021"></span></th>
+                        <th onclick="sortTable('2020')">2020 <span class="sort-indicator" id="sort-2020"></span></th>
+                        <th onclick="sortTable('2019')">2019 <span class="sort-indicator" id="sort-2019"></span></th>
+                        <th onclick="sortTable('2018')">2018 <span class="sort-indicator" id="sort-2018"></span></th>
+                        <th onclick="sortTable('2017')">2017 <span class="sort-indicator" id="sort-2017"></span></th>
+                        <th onclick="sortTable('2016')">2016 <span class="sort-indicator" id="sort-2016"></span></th>
+                        <th onclick="sortTable('2015')">2015 <span class="sort-indicator" id="sort-2015"></span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color performance-excellent"></div>
+                <span>Excellent (>25%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color performance-good"></div>
+                <span>Good (15-25%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color performance-average"></div>
+                <span>Average (5-15%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color performance-poor"></div>
+                <span>Poor (-5 to 5%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color performance-very-poor"></div>
+                <span>Very Poor (<-5%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color valuation-cheap"></div>
+                <span>Cheap P/E (<15)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color valuation-fair"></div>
+                <span>Fair P/E (15-25)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color valuation-expensive"></div>
+                <span>Expensive P/E (>25)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color dividend-high"></div>
+                <span>High Dividend (>3%)</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Comprehensive list of Nifty indices with categories
+        const niftyIndices = [
+            // Broad Market Indices
+            { symbol: 'NSE:NIFTY 50', name: 'Nifty 50', category: 'broad' },
+            { symbol: 'NSE:NIFTY NEXT 50', name: 'Nifty Next 50', category: 'broad' },
+            { symbol: 'NSE:NIFTY 100', name: 'Nifty 100', category: 'broad' },
+            { symbol: 'NSE:NIFTY 200', name: 'Nifty 200', category: 'broad' },
+            { symbol: 'NSE:NIFTY 500', name: 'Nifty 500', category: 'broad' },
+            { symbol: 'NSE:NIFTY TOTAL MARKET', name: 'Nifty Total Market', category: 'broad' },
+            { symbol: 'NSE:NIFTY MIDCAP 50', name: 'Nifty Midcap 50', category: 'broad' },
+            { symbol: 'NSE:NIFTY MIDCAP 100', name: 'Nifty Midcap 100', category: 'broad' },
+            { symbol: 'NSE:NIFTY MIDCAP 150', name: 'Nifty Midcap 150', category: 'broad' },
+            { symbol: 'NSE:NIFTY SMALLCAP 50', name: 'Nifty Smallcap 50', category: 'broad' },
+            { symbol: 'NSE:NIFTY SMALLCAP 100', name: 'Nifty Smallcap 100', category: 'broad' },
+            { symbol: 'NSE:NIFTY SMALLCAP 250', name: 'Nifty Smallcap 250', category: 'broad' },
+            { symbol: 'NSE:NIFTY MICROCAP 250', name: 'Nifty Microcap 250', category: 'broad' },
+            
+            // Sectoral Indices
+            { symbol: 'NSE:NIFTY AUTO', name: 'Nifty Auto', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY BANK', name: 'Nifty Bank', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY FIN SERVICE', name: 'Nifty Financial Services', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY FMCG', name: 'Nifty FMCG', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY IT', name: 'Nifty IT', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY MEDIA', name: 'Nifty Media', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY METAL', name: 'Nifty Metal', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY PHARMA', name: 'Nifty Pharma', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY PSU BANK', name: 'Nifty PSU Bank', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY PVT BANK', name: 'Nifty Private Bank', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY REALTY', name: 'Nifty Realty', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY ENERGY', name: 'Nifty Energy', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY INFRASTRUCTURE', name: 'Nifty Infrastructure', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY COMMODITIES', name: 'Nifty Commodities', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY CONSUMPTION', name: 'Nifty Consumption', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY HEALTHCARE', name: 'Nifty Healthcare', category: 'sectoral' },
+            { symbol: 'NSE:NIFTY OIL GAS', name: 'Nifty Oil & Gas', category: 'sectoral' },
+            
+            // Sharia Indices
+            { symbol: 'NSE:NIFTY50 SHARIAH', name: 'Nifty50 Shariah', category: 'sharia' },
+            { symbol: 'NSE:NIFTY500 SHARIAH', name: 'Nifty500 Shariah', category: 'sharia' },
+            { symbol: 'NSE:NIFTY MIDCAP150 SHARIAH', name: 'Nifty Midcap150 Shariah', category: 'sharia' },
+            { symbol: 'NSE:NIFTY SMALLCAP250 SHARIAH', name: 'Nifty Smallcap250 Shariah', category: 'sharia' },
+            
+            // Thematic Indices
+            { symbol: 'NSE:NIFTY ALPHA 50', name: 'Nifty Alpha 50', category: 'thematic' },
+            { symbol: 'NSE:NIFTY HIGH BETA 50', name: 'Nifty High Beta 50', category: 'thematic' },
+            { symbol: 'NSE:NIFTY LOW VOLATILITY 50', name: 'Nifty Low Volatility 50', category: 'thematic' },
+            { symbol: 'NSE:NIFTY QUALITY 30', name: 'Nifty Quality 30', category: 'thematic' },
+            { symbol: 'NSE:NIFTY DIVIDEND OPPORTUNITIES 50', name: 'Nifty Dividend Opportunities 50', category: 'thematic' },
+            { symbol: 'NSE:NIFTY GROWTH SECTORS 15', name: 'Nifty Growth Sectors 15', category: 'thematic' },
+            { symbol: 'NSE:NIFTY100 QUALITY 30', name: 'Nifty100 Quality 30', category: 'thematic' },
+            { symbol: 'NSE:NIFTY200 QUALITY 30', name: 'Nifty200 Quality 30', category: 'thematic' },
+            { symbol: 'NSE:NIFTY100 ALPHA 30', name: 'Nifty100 Alpha 30', category: 'thematic' },
+            { symbol: 'NSE:NIFTY LARGEMIDCAP 250', name: 'Nifty LargeMidcap 250', category: 'thematic' },
+            { symbol: 'NSE:NIFTY500 MULTICAP 50:25:25', name: 'Nifty500 Multicap 50:25:25', category: 'thematic' },
+            { symbol: 'NSE:NIFTY CPSE', name: 'Nifty CPSE', category: 'thematic' },
+            { symbol: 'NSE:NIFTY PSE', name: 'Nifty PSE', category: 'thematic' },
+            { symbol: 'NSE:NIFTY MNC', name: 'Nifty MNC', category: 'thematic' },
+            { symbol: 'NSE:NIFTY SME EMERGE', name: 'Nifty SME Emerge', category: 'thematic' },
+            { symbol: 'NSE:NIFTY100 ESG', name: 'Nifty100 ESG', category: 'thematic' },
+            { symbol: 'NSE:NIFTY INDIA DIGITAL', name: 'Nifty India Digital', category: 'thematic' },
+            { symbol: 'NSE:NIFTY INDIA DEFENCE', name: 'Nifty India Defence', category: 'thematic' },
+            { symbol: 'NSE:NIFTY EV & NEW AGE AUTOMOTIVE', name: 'Nifty EV & New Age Automotive', category: 'thematic' },
+            
+            // Strategy Indices
+            { symbol: 'NSE:NIFTY50 VALUE 20', name: 'Nifty50 Value 20', category: 'strategy' },
+            { symbol: 'NSE:NIFTY100 VALUE 30', name: 'Nifty100 Value 30', category: 'strategy' },
+            { symbol: 'NSE:NIFTY50 EQUAL WEIGHT', name: 'Nifty50 Equal Weight', category: 'strategy' },
+            { symbol: 'NSE:NIFTY100 EQUAL WEIGHT', name: 'Nifty100 Equal Weight', category: 'strategy' },
+            { symbol: 'NSE:NIFTY500 VALUE 50', name: 'Nifty500 Value 50', category: 'strategy' },
+            { symbol: 'NSE:NIFTY MOMENTUM 30', name: 'Nifty Momentum 30', category: 'strategy' }
+        ];
+
+        let currentData = [];
+        let currentFilter = 'all';
+        let sortColumn = '2025';
+        let sortDirection = 'desc';
+
+        // Generate simulated quantitative data along with historical returns
+        function generateQuantitativeData(indexData) {
+            const years = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024];
+            const returns = {};
+            
+            // Generate realistic returns based on index category
+            const categoryMultipliers = {
+                'broad': { base: 12, volatility: 15, pe: 22, pb: 3.2, div: 1.3 },
+                'sectoral': { base: 15, volatility: 25, pe: 25, pb: 3.8, div: 1.1 },
+                'thematic': { base: 18, volatility: 30, pe: 28, pb: 4.2, div: 0.9 },
+                'sharia': { base: 11, volatility: 18, pe: 20, pb: 2.9, div: 1.5 },
+                'strategy': { base: 14, volatility: 20, pe: 24, pb: 3.5, div: 1.2 }
+            };
+
+            const multiplier = categoryMultipliers[indexData.category] || categoryMultipliers.broad;
+
+            // Generate quantitative metrics with realistic variations
+            const peRatio = multiplier.pe + (Math.random() - 0.5) * 10;
+            const pbRatio = multiplier.pb + (Math.random() - 0.5) * 2;
+            const dividendYield = multiplier.div + (Math.random() - 0.5) * 1;
+
+            // Sector-specific adjustments
+            if (indexData.name.includes('BANK')) {
+                // Banking indices typically have lower P/E, higher P/B
+                const bankPE = 12 + Math.random() * 8;
+                const bankPB = 1.5 + Math.random() * 2;
+                const bankDiv = 2 + Math.random() * 2;
+                return { pe: bankPE, pb: bankPB, dividend_yield: bankDiv };
+            }
+            
+            if (indexData.name.includes('IT')) {
+                // IT indices typically have higher P/E, lower P/B
+                const itPE = 25 + Math.random() * 15;
+                const itPB = 4 + Math.random() * 3;
+                const itDiv = 0.8 + Math.random() * 1.5;
+                return { pe: itPE, pb: itPB, dividend_yield: itDiv };
+            }
+
+            if (indexData.name.includes('PHARMA')) {
+                // Pharma indices typically have higher P/E
+                const pharmaPE = 30 + Math.random() * 20;
+                const pharmaPB = 3 + Math.random() * 2;
+                const pharmaDiv = 1 + Math.random() * 1.5;
+                return { pe: pharmaPE, pb: pharmaPB, dividend_yield: pharmaDiv };
+            }
+
+            years.forEach(year => {
+                let baseReturn = multiplier.base;
+                
+                // Add year-specific market conditions
+                if (year === 2020) baseReturn += Math.random() * 40 - 20; // COVID volatility
+                if (year === 2021) baseReturn += Math.random() * 20; // Recovery year
+                if (year === 2022) baseReturn -= Math.random() * 15; // Bear market
+                if (year === 2023) baseReturn += Math.random() * 25; // Recovery
+                if (year === 2024) baseReturn += Math.random() * 20; // Good year
+                
+                const volatility = multiplier.volatility;
+                returns[year] = baseReturn + (Math.random() - 0.5) * volatility;
+            });
+
+            // 2025 YTD (8 months)
+            returns[2025] = (multiplier.base + (Math.random() - 0.5) * multiplier.volatility) * 0.67; // YTD factor
+
+            // Calculate 10-year average
+            const tenYearAvg = years.reduce((sum, year) => sum + returns[year], 0) / years.length;
+
+            return { 
+                ...returns, 
+                average: tenYearAvg,
+                pe_ratio: peRatio,
+                pb_ratio: pbRatio,
+                dividend_yield: dividendYield
+            };
+        }
+
+        function getPEClass(peRatio) {
+            if (peRatio < 15) return 'valuation-cheap';
+            if (peRatio < 25) return 'valuation-fair';
+            return 'valuation-expensive';
+        }
+
+        function getPBClass(pbRatio) {
+            if (pbRatio < 2) return 'valuation-cheap';
+            if (pbRatio < 4) return 'valuation-fair';
+            return 'valuation-expensive';
+        }
+
+        function getDividendClass(divYield) {
+            if (divYield > 3) return 'dividend-high';
+            if (divYield > 1.5) return 'dividend-medium';
+            return 'dividend-low';
+        }
+
+        function getPerformanceClass(returnValue) {
+            if (returnValue > 25) return 'performance-excellent';
+            if (returnValue > 15) return 'performance-good';
+            if (returnValue > 5) return 'performance-average';
+            if (returnValue > -5) return 'performance-poor';
+            return 'performance-very-poor';
+        }
+
+        function formatNumber(num, decimals = 1) {
+            return num.toFixed(decimals);
+        }
+
+        function formatPercentage(num) {
+            const sign = num >= 0 ? '+' : '';
+            return `${sign}${num.toFixed(1)}%`;
+        }
+
+        function sortTable(column) {
+            // Toggle sort direction if same column, otherwise default to desc for returns, asc for name
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortDirection = column === 'name' ? 'asc' : 'desc';
+                sortColumn = column;
+            }
+
+            // Update sort indicators
+            document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                indicator.textContent = '';
+            });
+            
+            const currentIndicator = document.getElementById(`sort-${column}`);
+            if (currentIndicator) {
+                currentIndicator.textContent = sortDirection === 'asc' ? '▲' : '▼';
+            }
+
+            renderTable(currentData);
+        }
+
+        function getSortValue(item, column) {
+            if (column === 'name') {
+                return item.name.toLowerCase();
+            } else if (column === 'average') {
+                return item.returns.average;
+            } else if (column === 'pe_ratio') {
+                return item.returns.pe_ratio;
+            } else if (column === 'pb_ratio') {
+                return item.returns.pb_ratio;
+            } else if (column === 'dividend_yield') {
+                return item.returns.dividend_yield;
+            } else {
+                return item.returns[parseInt(column)] || 0;
+            }
+        }
+
+        function getCategoryTag(category) {
+            const categoryNames = {
+                'broad': 'Broad Market',
+                'sectoral': 'Sectoral',
+                'thematic': 'Thematic',
+                'sharia': 'Sharia',
+                'strategy': 'Strategy'
+            };
+            return categoryNames[category] || category;
+        }
+
+        function filterIndices(category) {
+            currentFilter = category;
+            
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            renderTable(currentData);
+            updateStats(currentData);
+        }
+
+        function renderTable(data) {
+            let filteredData = data;
+            
+            if (currentFilter !== 'all') {
+                filteredData = data.filter(item => item.category === currentFilter);
+            }
+
+            // Apply sorting
+            const sortedData = [...filteredData].sort((a, b) => {
+                const aValue = getSortValue(a, sortColumn);
+                const bValue = getSortValue(b, sortColumn);
+
+                if (sortColumn === 'name') {
+                    // String comparison for name
+                    if (sortDirection === 'asc') {
+                        return aValue.localeCompare(bValue);
+                    } else {
+                        return bValue.localeCompare(aValue);
+                    }
+                } else {
+                    // Numeric comparison for returns
+                    if (sortDirection === 'asc') {
+                        return aValue - bValue;
+                    } else {
+                        return bValue - aValue;
+                    }
+                }
+            });
+            
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            sortedData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                
+                const indexNameCell = `
+                    <td class="index-name">
+                        <div>${item.name}</div>
+                        <div class="category-tag">${getCategoryTag(item.category)}</div>
+                    </td>
+                `;
+                
+                const peCell = `<td class="${getPEClass(item.returns.pe_ratio)}">${formatNumber(item.returns.pe_ratio)}</td>`;
+                const pbCell = `<td class="${getPBClass(item.returns.pb_ratio)}">${formatNumber(item.returns.pb_ratio)}</td>`;
+                const divCell = `<td class="${getDividendClass(item.returns.dividend_yield)}">${formatNumber(item.returns.dividend_yield, 2)}%</td>`;
+                
+                const avgReturnCell = `<td class="avg-return">${formatPercentage(item.returns.average)}</td>`;
+                
+                const ytdClass = getPerformanceClass(item.returns[2025]);
+                const ytdCell = `<td class="${ytdClass}">${formatPercentage(item.returns[2025])}</td>`;
+                
+                const yearCells = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015]
+                    .map(year => {
+                        const returnValue = item.returns[year];
+                        const performanceClass = getPerformanceClass(returnValue);
+                        return `<td class="${performanceClass}">${formatPercentage(returnValue)}</td>`;
+                    }).join('');
+                
+                row.innerHTML = indexNameCell + peCell + pbCell + divCell + avgReturnCell + ytdCell + yearCells;
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateStats(data) {
+            let filteredData = data;
+            
+            if (currentFilter !== 'all') {
+                filteredData = data.filter(item => item.category === currentFilter);
+            }
+
+            const ytdReturns = filteredData.map(item => item.returns[2025]);
+            const peRatios = filteredData.map(item => item.returns.pe_ratio);
+            const avgYtd = ytdReturns.reduce((sum, ret) => sum + ret, 0) / ytdReturns.length;
+            const avgPE = peRatios.reduce((sum, pe) => sum + pe, 0) / peRatios.length;
+            
+            const sortedByYtd = [...filteredData].sort((a, b) => b.returns[2025] - a.returns[2025]);
+            
+            document.getElementById('totalIndices').textContent = filteredData.length;
+            document.getElementById('avgPE').textContent = formatNumber(avgPE, 1);
+            document.getElementById('avgReturn2025').textContent = formatPercentage(avgYtd);
+            document.getElementById('bestPerformer').textContent = sortedByYtd[0]?.name || '-';
+            document.getElementById('worstPerformer').textContent = sortedByYtd[sortedByYtd.length - 1]?.name || '-';
+        }
+
+        async function refreshData() {
+            const refreshBtn = document.querySelector('.refresh-btn');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const table = document.getElementById('performanceTable');
+
+            try {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = '🔄 Generating Data...';
+                
+                loading.style.display = 'block';
+                error.style.display = 'none';
+                table.style.display = 'none';
+
+                // Generate historical data for all indices
+                const data = niftyIndices.map(index => ({
+                    ...index,
+                    returns: generateQuantitativeData(index)
+                }));
+
+                currentData = data;
+                renderTable(data);
+                updateStats(data);
+                
+                loading.style.display = 'none';
+                table.style.display = 'table';
+                
+                document.getElementById('lastUpdated').textContent = 
+                    `Last updated: ${new Date().toLocaleString()}`;
+
+            } catch (err) {
+                console.error('Error refreshing data:', err);
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.textContent = '❌ Error loading data. Please try again.';
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 Refresh Data';
+            }
+        }
+
+        // Initialize dashboard
+        window.addEventListener('load', () => {
+            refreshData();
+        });
+    </script>
+</body>
+</html>
